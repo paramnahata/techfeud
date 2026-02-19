@@ -1,14 +1,27 @@
 // ═══════════════════════════════════════════════════════════
 // Tech Feud — Presenter / Projector Screen JS
+// Complete sound state machine — one sound plays at a time
 // ═══════════════════════════════════════════════════════════
 
 class TechFeudPresenter {
     constructor() {
         this.state           = null;
         this.timerInterval   = null;
-        this.lowSoundPlaying = false;
         this.buzzerHideTimer = null;
-        this.lbRendered      = false;  // FIX: only render LB once, not every poll
+        this.lbRendered      = false;
+
+        // ── Sound State Machine ──────────────────────────
+        // Only ONE background track plays at a time.
+        // currentBgSound tracks what is currently playing so we
+        // can stop it the moment the screen changes — no leaking.
+        this.currentBgSound  = null;   // id of currently looping/long sound
+        this.lowSoundPlaying = false;
+
+        // ── One-shot guards ──────────────────────────────
+        // Prevent firing a one-shot sound every poll.
+        // Each key = soundId, value = the "context" that triggered it.
+        // When context changes the guard resets and sound can fire again.
+        this.oneShotFired = {};   // { 'snd-intro': 'welcome', 'snd-buzzer': 'Alice', ... }
 
         this.prev = {
             questionId:       null,
@@ -31,13 +44,14 @@ class TechFeudPresenter {
         setInterval(() => this.fetchState(), 2000);
     }
 
+    // ── SSE ──────────────────────────────────────────────
     setupSSE() {
         try {
             const es = new EventSource('api/events.php');
             es.onmessage = (e) => {
                 try {
-                    const data = JSON.parse(e.data);
-                    if (!data.error) this.handleState(data);
+                    const d = JSON.parse(e.data);
+                    if (!d.error) this.handleState(d);
                 } catch(err) {}
             };
             es.onerror = () => { es.close(); setTimeout(() => this.setupSSE(), 5000); };
@@ -47,13 +61,66 @@ class TechFeudPresenter {
     fetchState() {
         fetch('api/api.php?action=get_state')
             .then(r => r.json())
-            .then(data => { if (!data.error) this.handleState(data); })
+            .then(d => { if (!d.error) this.handleState(d); })
             .catch(() => {});
     }
 
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════════
+    // SOUND STATE MACHINE
+    // ════════════════════════════════════════════════════
+
+    // Set the ONE background/looping sound that should be playing.
+    // Automatically stops whatever was playing before.
+    // Pass null to stop all background sounds.
+    setBgSound(id) {
+        if (id === this.currentBgSound) return;   // already correct — do nothing
+        // Stop previous
+        if (this.currentBgSound) this._rawStop(this.currentBgSound);
+        this.currentBgSound = id;
+        if (id) this._rawPlay(id);
+    }
+
+    // Fire a one-shot sound (doesn't stop bg sound).
+    // context: a string that identifies WHY it fired.
+    // If context hasn't changed since last fire, does nothing.
+    fireOneShot(id, context) {
+        if (this.oneShotFired[id] === context) return;  // already fired for this context
+        this.oneShotFired[id] = context;
+        // Stop the sound first so it restarts from 0 even if still finishing
+        this._rawStop(id);
+        this._rawPlay(id);
+    }
+
+    // Reset a one-shot guard (so it can fire again next time the context changes)
+    resetOneShot(id) {
+        delete this.oneShotFired[id];
+    }
+
+    _rawPlay(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.currentTime = 0;
+        el.play().catch(() => {});
+    }
+
+    _rawStop(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.pause();
+        el.currentTime = 0;
+    }
+
+    stopAllSounds() {
+        ['snd-intro','snd-question','snd-buzzer','snd-correct','snd-wrong',
+         'snd-timer-low','snd-timesup','snd-reveal','snd-winner'].forEach(id => this._rawStop(id));
+        this.currentBgSound  = null;
+        this.lowSoundPlaying = false;
+        this.oneShotFired    = {};
+    }
+
+    // ════════════════════════════════════════════════════
     // MAIN STATE HANDLER
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════════
     handleState(data) {
         this.state = data;
         const game = data.game;
@@ -90,67 +157,107 @@ class TechFeudPresenter {
         this.show('game-screen',         !onWelcome, 'flex');
         this.show('leaderboard-section', showLB,     'flex');
 
-        // ── SOUND: intro ─────────────────────────────────
-        if (onWelcome && !this.prev.welcomeShown) {
-            this.playSoundOnce('snd-intro');
-        }
+        // ════════════════════════════════════════════════
+        // ██  WELCOME SCREEN
+        // ════════════════════════════════════════════════
         if (onWelcome) {
-            this.prev.welcomeShown     = true;
-            this.prev.questionShown    = false;
-            this.prev.timerRunning     = false;
-            this.prev.buzzerFirst      = null;
-            this.prev.leaderboardShown = false;
-            this.prev.revealedCount    = 0;
-            this.prev.revealedIds      = [];
-            this.prev.questionId       = null;
-            this.lbRendered            = false;
-            // Hide buzzer takeover on welcome
-            this.forceHideBuzzer();
-            return;
+            // SOUND: intro.mp3 plays as bg music on welcome screen.
+            // Stops the moment we leave welcome.
+            this.setBgSound('snd-intro');
+
+            if (!this.prev.welcomeShown) {
+                // Reset all tracking when entering welcome
+                this.prev.questionShown    = false;
+                this.prev.timerRunning     = false;
+                this.prev.buzzerFirst      = null;
+                this.prev.leaderboardShown = false;
+                this.prev.revealedCount    = 0;
+                this.prev.revealedIds      = [];
+                this.prev.questionId       = null;
+                this.lbRendered            = false;
+                this.oneShotFired          = {};
+                this.forceHideBuzzer();
+            }
+            this.prev.welcomeShown = true;
+            return;   // ← stop here, don't process game logic
+        }
+
+        // Left welcome — stop intro immediately
+        if (this.prev.welcomeShown) {
+            // setBgSound(null) will stop intro if it's the current bg
+            if (this.currentBgSound === 'snd-intro') this.setBgSound(null);
         }
         this.prev.welcomeShown = false;
 
-        // ── LEADERBOARD ───────────────────────────────────
+        // ════════════════════════════════════════════════
+        // ██  LEADERBOARD / WINNER SCREEN
+        // ════════════════════════════════════════════════
         if (showLB && !this.prev.leaderboardShown) {
-            // Just appeared — stop everything, play winner sound
+            // First time LB appears: kill everything, play winner
             this.stopAllSounds();
-            this.playSoundOnce('snd-winner');
-            this.lbRendered = false;  // force a fresh render when it first shows
-            // FIX: hide buzzer takeover when LB appears
+            this.setBgSound('snd-winner');
+            this.lbRendered = false;
             this.forceHideBuzzer();
         }
         if (!showLB && this.prev.leaderboardShown) {
-            this.stopSound('snd-winner');
-            this.lbRendered = false;  // reset so next time it shows it re-renders
+            // LB just turned off
+            if (this.currentBgSound === 'snd-winner') this.setBgSound(null);
+            this.lbRendered = false;
         }
         this.prev.leaderboardShown = showLB;
 
-        // FIX: only render leaderboard ONCE when it first shows, not every poll
+        // Render LB only once when it first shows
         if (showLB && !this.lbRendered) {
             this.renderLeaderboard(data.leaderboard || data.contestants || []);
             this.lbRendered = true;
         }
 
-        // If leaderboard is on — skip all other game rendering
         if (showLB) {
             this.renderScoreStrip(data.contestants || []);
-            return;
+            return;   // ← skip game logic while leaderboard is showing
         }
 
-        // ── Question changed? Reset tracking ─────────────
+        // ════════════════════════════════════════════════
+        // ██  GAME SCREEN
+        // ════════════════════════════════════════════════
+
+        // ── Question changed? ────────────────────────────
         const qId = currentQ?.id || null;
         if (qId !== this.prev.questionId) {
             this.prev.questionId    = qId;
             this.prev.questionShown = false;
             this.prev.revealedCount = 0;
             this.prev.revealedIds   = [];
-            this.stopSound('snd-question');
+            // Stop question sound and reset its one-shot guard
+            if (this.currentBgSound === 'snd-question') this.setBgSound(null);
+            this.resetOneShot('snd-question');
+        }
+
+        // ── Determine what background sound should play ──
+        // Priority: buzzer active > timer-low > question > silence
+        const bq        = data.buzzer_queue || [];
+        const firstBuzz = bq[0]?.contestant_name || null;
+        const hasQ      = showQ && !!currentQ;
+        const hasAnswerQ = showA && !!currentQ;
+
+        // We'll set bg sound at the end of this section based on priority
+        let desiredBg = null;
+
+        if (firstBuzz) {
+            // When buzzer is pressed — no bg music, buzzer one-shot already fired
+            desiredBg = null;
+        } else if (timerOn && this.lowSoundPlaying) {
+            // Timer-low is managed separately (started inside timer logic)
+            desiredBg = null;
+        } else if (hasQ) {
+            // Question is showing → question tick plays as bg
+            desiredBg = 'snd-question';
+        } else {
+            desiredBg = null;
         }
 
         // ── Question display ─────────────────────────────
-        const hasQ = showQ && !!currentQ;
         this.show('question-section', hasQ, 'block');
-
         if (hasQ) {
             this.show('question-box-kbc',  qt === 'kbc',  'block');
             this.show('question-box-open', qt === 'open', 'block');
@@ -160,23 +267,22 @@ class TechFeudPresenter {
                 const el = document.getElementById(id);
                 if (el) el.textContent = qText;
             });
-
-            // FIX: sound plays once when question FIRST shown, and only if
-            // buzzer overlay is NOT currently displayed (to avoid replaying after buzz)
-            const buzzerVisible = document.getElementById('buzzer-takeover')?.style.display === 'flex';
-            if (!this.prev.questionShown && !buzzerVisible) {
-                this.playSoundOnce('snd-question');
-            }
         } else {
-            if (this.prev.questionShown) this.stopSound('snd-question');
+            if (this.prev.questionShown) {
+                // Question just hidden — stop question sound
+                if (this.currentBgSound === 'snd-question') this.setBgSound(null);
+                this.resetOneShot('snd-question');
+            }
         }
-        // FIX: questionShown should stay true even after buzzer — set it to
-        // "question is currently set to show", NOT "sound played". This prevents
-        // the sound from replaying when buzzer hides and we poll again.
         this.prev.questionShown = hasQ;
 
+        // Apply the desired background sound
+        // (but don't fight the timer-low logic below)
+        if (!this.lowSoundPlaying) {
+            this.setBgSound(desiredBg);
+        }
+
         // ── Answer board ─────────────────────────────────
-        const hasAnswerQ = showA && !!currentQ;
         this.show('answer-board-kbc',  hasAnswerQ && qt === 'kbc',  'block');
         this.show('answer-board-feud', hasAnswerQ && qt === 'feud', 'block');
 
@@ -184,7 +290,10 @@ class TechFeudPresenter {
             const newCount = revealed.length;
 
             if (newCount > this.prev.revealedCount) {
-                this.playSoundOnce('snd-reveal');
+                // New answer revealed — play reveal sound as one-shot
+                // Use reveal count as context so it fires once per new reveal
+                this.fireOneShot('snd-reveal', 'reveal_' + newCount);
+
                 if (qt === 'kbc') {
                     const allAnswers = currentQ.answers || [];
                     const newRevIds  = revealed.slice(this.prev.revealedCount);
@@ -192,10 +301,12 @@ class TechFeudPresenter {
                         const ans = allAnswers.find(a => String(a.id) === String(revId));
                         if (!ans) return;
                         const isCorrect = parseInt(ans.is_correct) === 1;
+                        const sndId = isCorrect ? 'snd-correct' : 'snd-wrong';
+                        // Fire correct/wrong 400ms after reveal sound
                         setTimeout(() => {
-                            this.stopSound('snd-reveal');
-                            this.playSoundOnce(isCorrect ? 'snd-correct' : 'snd-wrong');
-                        }, 350);
+                            this._rawStop('snd-reveal');
+                            this.fireOneShot(sndId, 'reveal_result_' + revId);
+                        }, 400);
                     });
                 }
             }
@@ -209,38 +320,51 @@ class TechFeudPresenter {
         // ── Timer ─────────────────────────────────────────
         const timerEl = document.getElementById('proj-timer');
         if (timerOn && timerStart > 0) {
-            if (timerEl) timerEl.style.display = 'block';
             if (!this.prev.timerRunning) {
-                // timerStart is Unix timestamp in seconds from MySQL
-                this.startTimerDisplay(timerSecs, timerStart * 1000);
+                // Calculate and SET the correct remaining value BEFORE showing the element
+                // so the raw timestamp never flashes on screen
+                const numEl = document.getElementById('proj-timer-num');
+                if (numEl) {
+                    const elapsed   = (Date.now() - timerStart) / 1000;
+                    const remaining = Math.max(0, Math.ceil(timerSecs - elapsed));
+                    numEl.textContent = remaining;
+                    numEl.className   = 'proj-timer-num' + (remaining <= 5 ? ' urgent' : '');
+                }
+                this.startTimerDisplay(timerSecs, timerStart);
             }
+            if (timerEl) timerEl.style.display = 'block';
         } else {
             if (timerEl) timerEl.style.display = 'none';
             if (this.prev.timerRunning) {
                 clearInterval(this.timerInterval);
-                this.stopSound('snd-timer-low');
+                // Stop timer-low if it was playing
+                this._rawStop('snd-timer-low');
                 this.lowSoundPlaying = false;
                 const numEl = document.getElementById('proj-timer-num');
                 if (numEl) { numEl.textContent = '—'; numEl.className = 'proj-timer-num'; }
-                if (buzzLocked) this.playSoundOnce('snd-timesup');
+                // Time's up sound — only if buzzers locked (natural expiry, not manual stop)
+                if (buzzLocked) {
+                    this.fireOneShot('snd-timesup', 'timesup_' + timerStart);
+                }
+                // Restore question sound if question is still showing
+                if (hasQ && !firstBuzz) this.setBgSound('snd-question');
             }
         }
         this.prev.timerRunning = timerOn;
 
         // ── Buzzer first ─────────────────────────────────
-        const bq        = data.buzzer_queue || [];
-        const firstBuzz = bq[0]?.contestant_name || null;
-
         if (firstBuzz !== this.prev.buzzerFirst) {
             this.prev.buzzerFirst = firstBuzz;
             if (firstBuzz) {
+                // Stop question sound immediately
+                if (this.currentBgSound === 'snd-question') this.setBgSound(null);
                 this.showBuzzerTakeover(firstBuzz);
-                this.stopSound('snd-question');
-                // FIX: do NOT reset prev.questionShown here —
-                // question sound should NOT replay when buzzer hides
-                this.playSoundOnce('snd-buzzer');
+                // Buzzer hit one-shot (context = name so re-fires if different person buzzes)
+                this.fireOneShot('snd-buzzer', 'buzz_' + firstBuzz);
             } else {
+                // Buzzer cleared — restore question sound if question still showing
                 this.hideBuzzerTakeover();
+                if (hasQ) this.setBgSound('snd-question');
             }
         }
 
@@ -248,9 +372,9 @@ class TechFeudPresenter {
         this.renderScoreStrip(data.contestants || []);
     }
 
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════════
     // RENDER — KBC board
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════════
     renderKbcBoard(question, revealed) {
         const container = document.getElementById('kbc-options');
         if (!container) return;
@@ -267,9 +391,9 @@ class TechFeudPresenter {
         });
     }
 
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════════
     // RENDER — Feud board
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════════
     renderFeudBoard(question, revealed) {
         const left  = document.getElementById('feud-col-left');
         const right = document.getElementById('feud-col-right');
@@ -293,9 +417,9 @@ class TechFeudPresenter {
         });
     }
 
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════════
     // RENDER — Score strip
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════════
     renderScoreStrip(contestants) {
         const strip = document.getElementById('score-strip');
         if (!strip) return;
@@ -308,9 +432,9 @@ class TechFeudPresenter {
         });
     }
 
-    // ═══════════════════════════════════════════════
-    // RENDER — Leaderboard / Winner (called ONCE)
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════════
+    // RENDER — Leaderboard (called ONCE per show)
+    // ════════════════════════════════════════════════════
     renderLeaderboard(lb) {
         if (!lb || lb.length === 0) return;
 
@@ -319,7 +443,6 @@ class TechFeudPresenter {
         const top3   = sorted.slice(0, 3);
         const rest   = sorted.slice(3);
 
-        // Winner banner
         const winName = document.getElementById('lb-winner-name');
         const winPts  = document.getElementById('lb-winner-pts');
         if (winName) winName.textContent = winner.name;
@@ -345,7 +468,6 @@ class TechFeudPresenter {
             });
         }
 
-        // Rest (4th+)
         const restEl = document.getElementById('lb-rest');
         if (restEl) {
             restEl.innerHTML = '';
@@ -364,33 +486,27 @@ class TechFeudPresenter {
         this.launchConfetti();
     }
 
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════════
     // BUZZER TAKEOVER
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════════
     showBuzzerTakeover(name) {
         const overlay = document.getElementById('buzzer-takeover');
         if (!overlay) return;
-
-        // Reset any previous fade-out state
-        overlay.style.opacity   = '';
+        overlay.style.opacity    = '';
         overlay.style.transition = '';
 
         const nameEl = document.getElementById('bz-name');
-        if (nameEl) nameEl.textContent = name;
-
-        this.spawnBuzzerParticles();
-
-        overlay.style.display = 'flex';
-
-        // Restart CSS animations on the name by re-cloning the element
-        const bz = document.getElementById('bz-name');
-        if (bz) {
-            bz.style.animation = 'none';
-            void bz.offsetWidth; // force reflow
-            bz.style.animation = '';
+        if (nameEl) {
+            nameEl.textContent = name;
+            // Restart pop animation
+            nameEl.style.animation = 'none';
+            void nameEl.offsetWidth;
+            nameEl.style.animation = '';
         }
 
-        // Auto-hide after 5s
+        this.spawnBuzzerParticles();
+        overlay.style.display = 'flex';
+
         clearTimeout(this.buzzerHideTimer);
         this.buzzerHideTimer = setTimeout(() => this.hideBuzzerTakeover(), 5000);
     }
@@ -410,7 +526,7 @@ class TechFeudPresenter {
     forceHideBuzzer() {
         clearTimeout(this.buzzerHideTimer);
         const overlay = document.getElementById('buzzer-takeover');
-        if (overlay) overlay.style.display = 'none';
+        if (overlay) { overlay.style.display = 'none'; overlay.style.opacity = ''; }
     }
 
     spawnBuzzerParticles() {
@@ -433,17 +549,55 @@ class TechFeudPresenter {
             const size  = 4 + Math.random() * 8;
             p.style.cssText = `
                 left:${cx}px; top:${cy}px;
-                width:${size}px; height:${size}px;
-                background:${color};
-                --tx:${tx}px; --ty:${ty}px;
-                --dur:${dur}s; --delay:${delay}s;`;
+                width:${size}px; height:${size}px; background:${color};
+                --tx:${tx}px; --ty:${ty}px; --dur:${dur}s; --delay:${delay}s;`;
             container.appendChild(p);
         }
     }
 
-    // ═══════════════════════════════════════════════
-    // CONFETTI (runs once, no loop)
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════════
+    // TIMER DISPLAY
+    // ════════════════════════════════════════════════════
+    startTimerDisplay(totalSeconds, startedAtMs) {
+        clearInterval(this.timerInterval);
+        this.lowSoundPlaying = false;
+        const numEl = document.getElementById('proj-timer-num');
+        if (!numEl) return;
+
+        const update = () => {
+            const elapsed   = (Date.now() - startedAtMs) / 1000;
+            const remaining = Math.max(0, Math.ceil(totalSeconds - elapsed));
+            numEl.textContent = remaining;
+            numEl.className   = 'proj-timer-num' + (remaining <= 5 ? ' urgent' : '');
+
+            // Last 5 seconds: pause question sound, play timer-low loop
+            if (remaining <= 5 && remaining > 0 && !this.lowSoundPlaying) {
+                this.lowSoundPlaying = true;
+                // Pause question bg so timer-low is audible
+                if (this.currentBgSound === 'snd-question') {
+                    const qEl = document.getElementById('snd-question');
+                    if (qEl) qEl.pause();  // don't reset, just pause
+                }
+                this._rawPlay('snd-timer-low');
+            }
+            if ((remaining > 5 || remaining <= 0) && this.lowSoundPlaying) {
+                this.lowSoundPlaying = false;
+                this._rawStop('snd-timer-low');
+                // Resume question if still showing
+                if (this.currentBgSound === 'snd-question') {
+                    const qEl = document.getElementById('snd-question');
+                    if (qEl) qEl.play().catch(() => {});
+                }
+            }
+            if (remaining <= 0) clearInterval(this.timerInterval);
+        };
+        update();
+        this.timerInterval = setInterval(update, 500);
+    }
+
+    // ════════════════════════════════════════════════════
+    // CONFETTI
+    // ════════════════════════════════════════════════════
     launchConfetti() {
         const container = document.getElementById('lb-confetti');
         if (!container) return;
@@ -461,16 +615,15 @@ class TechFeudPresenter {
             const rot   = 360 + Math.random() * 720;
             c.style.cssText = `
                 --c:${color}; --w:${w}px; --h:${h}px;
-                --left:${left}%; --dur:${dur}s;
-                --delay:${delay}s; --rot:${rot}deg;
+                --left:${left}%; --dur:${dur}s; --delay:${delay}s; --rot:${rot}deg;
                 width:${w}px; height:${h}px; left:${left}%;`;
             container.appendChild(c);
         }
     }
 
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════════
     // STARFIELD
-    // ═══════════════════════════════════════════════
+    // ════════════════════════════════════════════════════
     buildStarfield() {
         const container = document.getElementById('lb-stars');
         if (!container) return;
@@ -489,59 +642,9 @@ class TechFeudPresenter {
         }
     }
 
-    // ═══════════════════════════════════════════════
-    // TIMER DISPLAY
-    // ═══════════════════════════════════════════════
-    startTimerDisplay(totalSeconds, startedAtMs) {
-        clearInterval(this.timerInterval);
-        this.lowSoundPlaying = false;
-        const numEl = document.getElementById('proj-timer-num');
-        if (!numEl) return;
-
-        const update = () => {
-            const elapsed   = (Date.now() - startedAtMs) / 1000;
-            const remaining = Math.max(0, Math.ceil(totalSeconds - elapsed));
-            numEl.textContent = remaining;
-            numEl.className   = 'proj-timer-num' + (remaining <= 5 ? ' urgent' : '');
-
-            if (remaining <= 5 && remaining > 0 && !this.lowSoundPlaying) {
-                this.lowSoundPlaying = true;
-                const el = document.getElementById('snd-timer-low');
-                if (el) { el.currentTime = 0; el.play().catch(() => {}); }
-            }
-            if ((remaining > 5 || remaining <= 0) && this.lowSoundPlaying) {
-                this.lowSoundPlaying = false;
-                this.stopSound('snd-timer-low');
-            }
-            if (remaining <= 0) clearInterval(this.timerInterval);
-        };
-        update();
-        this.timerInterval = setInterval(update, 500);
-    }
-
-    // ═══════════════════════════════════════════════
-    // SOUND HELPERS
-    // ═══════════════════════════════════════════════
-    playSoundOnce(id) {
-        const el = document.getElementById(id);
-        if (!el) return;
-        if (!el.paused && !el.ended) return;
-        el.currentTime = 0;
-        el.play().catch(() => {});
-    }
-
-    stopSound(id) {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.pause();
-        el.currentTime = 0;
-    }
-
-    stopAllSounds() {
-        ['snd-intro','snd-question','snd-buzzer','snd-correct','snd-wrong',
-         'snd-timer-low','snd-timesup','snd-reveal','snd-winner'].forEach(id => this.stopSound(id));
-    }
-
+    // ════════════════════════════════════════════════════
+    // UTILITY
+    // ════════════════════════════════════════════════════
     show(id, visible, displayType = 'block') {
         const el = document.getElementById(id);
         if (el) el.style.display = visible ? displayType : 'none';
@@ -549,3 +652,4 @@ class TechFeudPresenter {
 }
 
 document.addEventListener('DOMContentLoaded', () => new TechFeudPresenter());
+
