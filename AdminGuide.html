@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tech Feud — Admin Operating Guide</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f0f1e; color: #fff; padding: 30px 20px; max-width: 900px; margin: 0 auto; }
+h1 { font-size: 2rem; color: #C9A84C; letter-spacing: 2px; margin-bottom: 4px; }
+h2 { font-size: 1.2rem; color: #C9A84C; margin: 28px 0 10px; border-bottom: 1px solid rgba(201,168,76,0.3); padding-bottom: 6px; }
+h3 { font-size: 1rem; color: #aaa; margin: 16px 0 6px; }
+p, li { font-size: 0.95rem; color: rgba(255,255,255,0.8); line-height: 1.7; }
+ul, ol { padding-left: 20px; }
+li { margin-bottom: 4px; }
+.subtitle { color: rgba(255,255,255,0.5); font-size: 0.9rem; margin-bottom: 30px; }
+.step-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 16px 0; }
+.step-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(201,168,76,0.2); border-radius: 14px; padding: 18px; }
+.step-num { background: #C9A84C; color: #000; font-weight: 900; font-size: 1.1rem; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+.step-title { color: #C9A84C; font-weight: 700; font-size: 1rem; margin-bottom: 6px; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+.badge-blue { background: rgba(26,35,126,0.6); color: #8899ff; border: 1px solid #4455cc; }
+.badge-purple { background: rgba(74,0,128,0.6); color: #cc88ff; border: 1px solid #8844cc; }
+.badge-green { background: rgba(0,80,0,0.6); color: #88ff88; border: 1px solid #44cc44; }
+.badge-red { background: rgba(128,0,0,0.6); color: #ff8888; border: 1px solid #cc4444; }
+.badge-gold { background: rgba(100,70,0,0.6); color: #C9A84C; border: 1px solid #C9A84C; }
+.section { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 18px; margin: 12px 0; }
+.section-title { font-weight: 700; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+code { background: rgba(255,255,255,0.1); padding: 2px 7px; border-radius: 4px; font-size: 0.85rem; color: #ffcc88; }
+.flow-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+.flow-btn { background: rgba(30,136,229,0.3); border: 1px solid #1E88E5; color: #fff; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; white-space: nowrap; }
+.flow-arrow { color: #C9A84C; font-size: 1.2rem; }
+.warn { background: rgba(200,100,0,0.1); border: 1px solid rgba(200,100,0,0.4); border-radius: 8px; padding: 12px 16px; margin: 10px 0; font-size: 0.9rem; color: #ffbb66; }
+.tip { background: rgba(0,100,50,0.1); border: 1px solid rgba(0,150,50,0.4); border-radius: 8px; padding: 12px 16px; margin: 10px 0; font-size: 0.9rem; color: #88ffaa; }
+table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+th { text-align: left; padding: 10px; background: rgba(201,168,76,0.15); color: #C9A84C; font-size: 0.85rem; border-bottom: 1px solid rgba(201,168,76,0.3); }
+td { padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }
+tr:last-child td { border-bottom: none; }
+</style>
+</head>
+<body>
+
+<h1>⚡ TECH FEUD</h1>
+<div class="subtitle">Admin Panel — Complete Operating Guide · BAMC x ISTE's Paradox</div>
+
+<!-- ══ BEFORE EVENT ══ -->
+<h2>📋 Before the Event (Setup)</h2>
+
+<div class="step-grid">
+    <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-title">Load Questions</div>
+        <p>Scroll to <strong>Question Manager</strong> → click <strong>📦 Preloaded</strong> tab → click <strong>"Load Prebuilt Questions"</strong> to get 10 ready-made tech questions instantly.</p>
+        <br>
+        <p>Or use <strong>➕ Add Question</strong> tab to create your own.</p>
+    </div>
+    <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-title">Open Projector Screen</div>
+        <p>Click the <code>📺 Projector</code> button in the top bar. Open that window on your second screen / projector. It shows the welcome screen by default.</p>
+    </div>
+    <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-title">Upload Logo (Optional)</div>
+        <p>Scroll to <strong>Logo Upload</strong> → click the dashed box → pick your PNG/JPG file. It appears everywhere automatically.</p>
+    </div>
+    <div class="step-card">
+        <div class="step-num">4</div>
+        <div class="step-title">Enter Contestant Names</div>
+        <p>Fill in the names in <strong>Contestant Setup</strong> (up to 8). These are the finalists who will appear on the buzzer screen.</p>
+        <br>
+        <p>Then click <strong>▶ Start Game</strong>.</p>
+    </div>
+    <div class="step-card">
+        <div class="step-num">5</div>
+        <div class="step-title">Connect Contestant Phones</div>
+        <p>Find your laptop's local IP (open Command Prompt → type <code>ipconfig</code>, look for IPv4). Tell contestants to open:<br><br><code>http://YOUR-IP/techfeud/buzzer.php</code></p>
+    </div>
+</div>
+
+<!-- ══ SECTION: PROJECTOR CONTROLS ══ -->
+<h2>📺 Projector Screen Controls — What Each Button Does</h2>
+<div class="warn">⚠️ These buttons control what shows on the BIG SCREEN (projector). They are toggles — click once to show, click again to hide. When a button is highlighted gold, that section is currently showing on the projector.</div>
+
+<table>
+    <tr>
+        <th>Button</th>
+        <th>What it does on the projector</th>
+        <th>When to click</th>
+    </tr>
+    <tr>
+        <td>🏠 <strong>Welcome Screen</strong></td>
+        <td>Shows/hides the animated welcome slide with "TECH FEUD — BAMC x ISTE's Paradox"</td>
+        <td>At the very start. Click again to hide it when the game begins.</td>
+    </tr>
+    <tr>
+        <td>❓ <strong>Show Question</strong></td>
+        <td>Shows/hides the question text on the projector</td>
+        <td>After you've selected a question from the dropdown. Click to show it to contestants.</td>
+    </tr>
+    <tr>
+        <td>📋 <strong>Show Answers</strong></td>
+        <td>Shows/hides the answer board (Feud cards or KBC options)</td>
+        <td>After showing the question. For Feud: cards start face-down. For KBC: all 4 options shown.</td>
+    </tr>
+    <tr>
+        <td>🏆 <strong>Leaderboard</strong></td>
+        <td>Shows/hides the full-screen leaderboard with all scores</td>
+        <td>After each round or at the end. Hides all other content when active.</td>
+    </tr>
+</table>
+
+<!-- ══ SECTION: QUESTION FLOW ══ -->
+<h2>🎮 How to Run a Question (Step by Step)</h2>
+
+<h3>For Family Feud questions:</h3>
+<div class="section">
+    <div class="flow-row">
+        <span class="flow-btn">1. Select question from dropdown</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">2. Click ❓ Show Question</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">3. Set timer → Start</span>
+    </div>
+    <div class="flow-row">
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">4. Someone buzzes → see top 3 in Buzzer Control</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">5. Click 📋 Show Answers</span>
+    </div>
+    <div class="flow-row">
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">6. Hear their answer → click matching answer card to reveal it (+points)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">7. If wrong → click ✕ NO ANSWER / WRONG → call 2nd buzzer</span>
+    </div>
+    <div class="flow-row">
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">8. When done → click 🔄 New Round</span>
+    </div>
+</div>
+
+<h3>For KBC questions (A B C D):</h3>
+<div class="section">
+    <div class="flow-row">
+        <span class="flow-btn">1. Select question</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">2. Click ❓ Show Question + 📋 Show Answers</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">3. Start timer</span>
+    </div>
+    <div class="flow-row">
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">4. Contestant buzzes + answers</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">5. Click the correct answer in Answer Controls to reveal it (green highlight)</span>
+    </div>
+    <div class="flow-row">
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">6. Use Award Points to give points to the contestant</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">7. New Round</span>
+    </div>
+</div>
+
+<h3>For Open Answer questions:</h3>
+<div class="section">
+    <div class="flow-row">
+        <span class="flow-btn">1. Select question → Show Question</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">2. Contestant buzzes and gives verbal answer</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">3. Judge it yourself</span>
+    </div>
+    <div class="flow-row">
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">4. If correct → use Award Points section: select contestant, set points, click Award</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-btn">5. New Round</span>
+    </div>
+</div>
+
+<!-- ══ SECTION: TIMER + BUZZER ══ -->
+<h2>⏱ Timer & Buzzer Control</h2>
+
+<table>
+    <tr>
+        <th>Control</th>
+        <th>What it does</th>
+    </tr>
+    <tr>
+        <td><strong>Set Seconds</strong> (number box)</td>
+        <td>Type the number of seconds for the countdown. Default is 30.</td>
+    </tr>
+    <tr>
+        <td>▶ <strong>Start Timer</strong></td>
+        <td>Starts the countdown on both the projector and contestant phones. Buzzer buttons stay active.</td>
+    </tr>
+    <tr>
+        <td>⏹ <strong>Stop Timer</strong></td>
+        <td>Manually stops the timer without locking buzzers.</td>
+    </tr>
+    <tr>
+        <td>🔒 <strong>Lock Buzzers</strong></td>
+        <td>Immediately locks all phones — no one can buzz. Use if you need to reset or move on.</td>
+    </tr>
+    <tr>
+        <td>🔓 <strong>Unlock & Clear</strong></td>
+        <td>Unlocks all phones AND clears the buzzer queue (all 3 slots reset to empty). Use at the start of each question.</td>
+    </tr>
+    <tr>
+        <td><strong>Buzzer Queue (1st / 2nd / 3rd)</strong></td>
+        <td>Shows you who pressed first, second, third in real time. Call on 2nd if 1st is wrong.</td>
+    </tr>
+</table>
+
+<div class="tip">💡 Timer auto-locks buzzers at 0 seconds if no one has buzzed. You can still manually Unlock & Clear if needed.</div>
+
+<!-- ══ SECTION: ANSWER CONTROLS ══ -->
+<h2>📋 Answer Controls</h2>
+<p>These buttons appear once you select a question. Each button = one answer.</p>
+
+<ul style="margin: 10px 0 0 20px;">
+    <li><strong>Family Feud</strong>: Click a button to <em>reveal</em> that answer card on the projector AND add its points to the current contestant. Revealed buttons turn green.</li>
+    <li><strong>KBC</strong>: Click an option button to reveal whether it's correct/wrong on the projector. The correct answer has a green left border. Award points separately using the Award Points section.</li>
+    <li><strong>✕ NO ANSWER / WRONG</strong>: Press this when the contestant got it wrong. No points awarded, no answer revealed. Then call on the 2nd buzzer.</li>
+</ul>
+
+<!-- ══ SECTION: SCORE EDITOR ══ -->
+<h2>✏️ Score Editor</h2>
+<p>The Score Editor (below Answer Controls) lets you manually set any contestant's score at any time. Just type in the number and click <strong>Set</strong>. Useful for corrections.</p>
+
+<!-- ══ SECTION: TYPICAL ROUND ══ -->
+<h2>🏁 Typical Full Event Flow</h2>
+
+<ol style="margin-top: 10px;">
+    <li><strong>BEFORE</strong>: Load questions → Enter names → Start Game → Open projector window → Show Welcome Screen on projector</li>
+    <li><strong>OPENING</strong>: Welcome screen shows. Contestants connect phones. When ready → click Welcome Screen toggle to hide it.</li>
+    <li><strong>EACH ROUND</strong>:
+        <ul>
+            <li>Select question from dropdown</li>
+            <li>Click Unlock & Clear buzzers</li>
+            <li>Click Show Question</li>
+            <li>Set timer and Start</li>
+            <li>First buzzer name appears on projector — call on them</li>
+            <li>If correct: click answer card (Feud) or Award Points (KBC/Open)</li>
+            <li>If wrong: click NO ANSWER / WRONG → call 2nd buzzer from queue</li>
+            <li>Click New Round when done</li>
+        </ul>
+    </li>
+    <li><strong>BETWEEN ROUNDS</strong>: Click Leaderboard to show rankings. Then hide it and move to next question.</li>
+    <li><strong>END</strong>: Click Leaderboard to reveal final winner on projector! 🏆</li>
+</ol>
+
+<!-- ══ SECTION: TROUBLESHOOT ══ -->
+<h2>🔧 Troubleshooting</h2>
+
+<table>
+    <tr>
+        <th>Problem</th>
+        <th>Fix</th>
+    </tr>
+    <tr>
+        <td>Projector screen not changing when I click toggle buttons</td>
+        <td>Make sure you replaced <code>admin.js</code> with the FIXED version. Also check that <code>api/events.php</code> is running (check browser console on projector page for errors).</td>
+    </tr>
+    <tr>
+        <td>Buzzer shows locked immediately without timer</td>
+        <td>You need the FIXED <code>buzzer.php</code>. The old one treated DB value "0" as truthy (a PHP/MySQL bug).</td>
+    </tr>
+    <tr>
+        <td>Unlock & Clear doesn't re-enable phones</td>
+        <td>Fixed in the new <code>buzzer.php</code> — it now detects the unlock event and resets hasBuzzed automatically.</td>
+    </tr>
+    <tr>
+        <td>Phone says "Connection error"</td>
+        <td>Make sure phone and laptop are on the same Wi-Fi. Use laptop's local IP, not "localhost".</td>
+    </tr>
+    <tr>
+        <td>Contestant not in the list on phone</td>
+        <td>You must enter names in Contestant Setup and click Start Game BEFORE phones connect.</td>
+    </tr>
+    <tr>
+        <td>Sounds not working</td>
+        <td>Add MP3 files to the <code>sounds/</code> folder. Most browsers need a user gesture before playing audio — sounds work after someone presses the buzzer or a button.</td>
+    </tr>
+</table>
+
+</body>
+</html>
